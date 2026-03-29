@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = "HITTER_SECRET_KEY_987654321" # Fixed key for session persistence
 
 # Global variables
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
