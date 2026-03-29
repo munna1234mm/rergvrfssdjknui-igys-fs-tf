@@ -28,7 +28,11 @@ async def hit_card(url, card_str, proxy=None):
     
     async with async_playwright() as p:
         # Launch browser (Headless=False to see it work, can be changed to True)
-        browser = await p.chromium.launch(headless=False)
+        # Launch browser (REQUIRED: headless=True for Render/Linux servers)
+        browser = await p.chromium.launch(
+            headless=True, 
+            args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+        )
         
         # Random User Agent for this session
         ua = random.choice(USER_AGENTS)
@@ -140,8 +144,7 @@ async def hit_card(url, card_str, proxy=None):
             elif "authenticate" in content.lower() or "security" in content.lower():
                  print(f"3DS: 3D Secure Verification Required")
             else:
-                 print(f"UNKNOWN: Result not detected, please check manual window.")
-                 await asyncio.sleep(15) # Give user time to see
+                 print(f"UNKNOWN: Result not detected.")
             
         except Exception as e:
             print(f"ERROR: {str(e)}")
