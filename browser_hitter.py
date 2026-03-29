@@ -47,7 +47,19 @@ async def hit_card(url, card_str, proxy=None):
         context = await browser.new_context(**context_args)
         
         page = await context.new_page()
-        await playwright_stealth.stealth(page)
+        
+        # Apply stealth (handle different package versions resiliently)
+        try:
+            # Try original call
+            await playwright_stealth.stealth(page)
+        except (TypeError, AttributeError):
+            try:
+                # Try nested call (fixed some alternative package versions)
+                await playwright_stealth.stealth.stealth(page)
+            except:
+                print("⚠️ Stealth could not be applied via standard method, continuing anyway...")
+        except Exception as e:
+            print(f"⚠️ Stealth Error: {e}")
         
         print(f"🚀 Navigating to: {url}")
         try:
