@@ -2,7 +2,6 @@ from flask import Flask, send_from_directory, request, jsonify, session
 import os
 import random
 import requests
-import subprocess
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -59,8 +58,6 @@ def verify_otp():
     
     if otp_storage.get(chat_id) == code:
         session["chat_id"] = chat_id
-        # Optional: delete code after use
-        # del otp_storage[chat_id]
         return jsonify({"success": True, "message": "Login successful"})
     else:
         return jsonify({"success": False, "message": "Invalid code"}), 401
@@ -76,39 +73,18 @@ def hit():
     gate = data.get("gate", "checkout")
     url = data.get("url")
     card = data.get("card")
-    use_browser = data.get("use_browser", False)
     
     if not url or not card:
         return jsonify({"success": False, "message": "URL and Card are required"}), 400
 
-    if use_browser:
-        # Launch LOCAL browser script
-        print(f"🖥️ Launching local browser for card {card}...")
-        try:
-            # We run it as a background process so the server keeps responding? 
-            # Or run synchronously for logging. Synchronous is easier for UI status updates.
-            process = subprocess.run(["python", "browser_hitter.py", url, card], capture_output=True, text=True)
-            output = process.stdout
-            
-            if "SUCCESS" in output:
-               return jsonify({"status": "charged", "message": "Charged Successfully (Browser)"})
-            elif "FAILURE" in output:
-               return jsonify({"status": "dead", "message": "Card Declined (Browser)"})
-            elif "3DS" in output:
-               return jsonify({"status": "3ds", "message": "3D Secure Required"})
-            else:
-               return jsonify({"status": "error", "message": "Unknown Browser Error", "details": output})
-        except Exception as e:
-            return jsonify({"status": "error", "message": f"Execution Error: {str(e)}"}), 500
-    else:
-        # API Hitting
-        try:
-            headers = {"X-API-Key": API_KEY, "Content-Type": "application/json"}
-            payload = {"url": url, "card": card}
-            response = requests.post(f"{API_URL}/hit/{gate}", json=payload, headers=headers, timeout=120)
-            return jsonify(response.json())
-        except Exception as e:
-            return jsonify({"status": "error", "message": f"API Error: {str(e)}"}), 500
+    # API Hitting Only (Removed Browser Mode Logic)
+    try:
+        headers = {"X-API-Key": API_KEY, "Content-Type": "application/json"}
+        payload = {"url": url, "card": card}
+        response = requests.post(f"{API_URL}/hit/{gate}", json=payload, headers=headers, timeout=120)
+        return jsonify(response.json())
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"API Error: {str(e)}"}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
