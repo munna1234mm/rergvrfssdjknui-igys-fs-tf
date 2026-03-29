@@ -92,6 +92,10 @@ async def hit_card(url, card_str, proxy=None):
             
             print("🔘 Clicking Pay...")
             # Try to find the submit button on the MAIN page with various selectors
+            # --- Result Detection (Refined for Accuracy) ---
+            success_keywords = ["payment successful", "transaction complete", "charged successfully", "your order is confirmed"]
+            failure_keywords = ["declined", "insufficient funds", "expired", "security code is incorrect", "card was declined"]
+            
             submit_selectors = [
                 'button[type="submit"]', 
                 '.SubmitButton', 
