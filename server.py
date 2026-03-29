@@ -201,6 +201,25 @@ def hit():
         if output.get("status") in ["charged", "approved"]:
             increment_stat("success_hits")
             
+            # Send Log to specific Telegram Group (-1003721268860)
+            log_group_id = "-1003721268860"
+            site = output.get("site", "Stripe")
+            amount = output.get("amount", "10.00 USD")
+            
+            # Use user username from DB or default
+            user_data = get_user(session["chat_id"])
+            user_display = user_data["username"] if user_data else f"User {session['chat_id']}"
+            
+            log_msg = (
+                "🔥 <b>HIT DETECTED</b> ⚡️\n"
+                f"👤 {user_display} ʙᴇɴ [Silver]\n"
+                f"↔️ Gateway: Stripe {gate.capitalize()} Hitter\n"
+                "✅ Response: Charged Successfully\n"
+                f"🌐 Site: {site}\n"
+                f"💰 Amount: {amount}"
+            )
+            send_telegram_msg(log_group_id, log_msg)
+            
         return jsonify(output)
     except Exception as e:
         return jsonify({"status": "error", "message": f"API Error: {str(e)}"}), 500
