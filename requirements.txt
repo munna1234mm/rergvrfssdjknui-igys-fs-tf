@@ -4,3 +4,4 @@ requests
 pyTelegramBotAPI
 playwright
 playwright-stealth
+httpx

