@@ -258,9 +258,9 @@ def hit():
                 message = "UNKNOWN: Result not detected"
             elif "ERROR:" in line:
                 message = f"Error: {line.split('ERROR:')[1].strip()}"
-            elif "traceback" in line.lower() or "line " in line.lower():
-                # Capture part of the error trace
-                message = f"Critical Error: {line.strip()}"
+            elif "traceback" in line.lower() or "line " in line.lower() or "error" in line.lower():
+                # Capture the actual error message (most recent one)
+                message = line.strip()
 
         return jsonify({"status": status, "message": message, "site": site, "amount": amount})
         
