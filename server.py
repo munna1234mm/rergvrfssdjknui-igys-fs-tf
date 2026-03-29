@@ -207,42 +207,57 @@ def hit():
         
         # Parse output for results
         status = "unknown"
-        message = "Result not detected"
+        message = "Starting..."
         site = "Stripe"
-        amount = "10.00 USD" # Default or extracted
+        amount = "10.00 USD" 
         
-        if "SUCCESS" in output_txt:
-            status = "charged"
-            message = "Charged Successfully"
-            increment_stat("success_hits")
+        # Split into lines and look for statuses
+        lines = output_txt.strip().split("\n")
+        for line in lines:
+            line = line.strip()
+            if not line: continue
             
-            # Send Log to specific Telegram Group (-1003721268860)
-            log_group_id = "-1003721268860"
-            user_data = get_user(session["chat_id"])
-            user_display = user_data["username"] if user_data else f"User {session['chat_id']}"
-            
-            log_msg = (
-                "🔥 <b>HIT DETECTED</b> ⚡️\n"
-                f"👤 {user_display} ʙᴇɴ [Silver]\n"
-                f"↔️ Gateway: Stripe {gate.capitalize()} Hitter\n"
-                "✅ Response: Charged Successfully\n"
-                f"🌐 Site: {site}\n"
-                f"💰 Amount: {amount}"
-            )
-            send_telegram_msg(log_group_id, log_msg)
-            
-        elif "FAILURE" in output_txt or "declined" in output_txt.lower():
-            status = "declined"
-            message = "Card Declined"
-        elif "3DS" in output_txt or "security" in output_txt.lower():
-            status = "3ds"
-            message = "3D Secure Required"
-        elif "hCaptcha detected" in output_txt and "✅ hCaptcha Solved!" in output_txt:
-            message += " (CAPTCHA Solved)"
-        
-        # If no status found, use the last captured output line
-        if status == "unknown" and output_txt.strip():
-            message = output_txt.strip().split("\n")[-1]
+            if "SUCCESS" in line:
+                status = "charged"
+                message = "Charged Successfully"
+                increment_stat("success_hits")
+                
+                # Send Log to specific Telegram Group (-1003721268860)
+                log_group_id = "-1003721268860"
+                user_data = get_user(session["chat_id"])
+                user_display = user_data["username"] if user_data else f"User {session['chat_id']}"
+                
+                log_msg = (
+                    "🔥 <b>HIT DETECTED</b> ⚡️\n"
+                    f"👤 {user_display} ʙᴇɴ [Silver]\n"
+                    f"↔️ Gateway: Stripe {gate.capitalize()} Hitter\n"
+                    "✅ Response: Charged Successfully\n"
+                    f"🌐 Site: {site}\n"
+                    f"💰 Amount: {amount}"
+                )
+                send_telegram_msg(log_group_id, log_msg)
+                break # Success is final
+                
+            elif "FAILURE" in line or "declined" in line.lower():
+                status = "declined"
+                message = "Card Declined"
+            elif "3DS" in line or "security" in line.lower():
+                status = "3ds"
+                message = "3D Secure Required"
+            elif "hCaptcha detected" in line:
+                message = "🧩 Solving hCaptcha..."
+            elif "✅ hCaptcha Solved!" in line:
+                message = "✅ hCaptcha Solved!"
+            elif "⌨️ Inputting card" in line:
+                message = "⌨️ Inputting Card..."
+            elif "🔘 Clicking Pay" in line:
+                message = "🔘 Clicking Pay..."
+            elif "⌛ Waiting for payment result" in line:
+                message = "⌛ Checking Result..."
+            elif "UNKNOWN: Result not detected" in line:
+                message = "UNKNOWN: Result not detected"
+            elif "ERROR:" in line:
+                message = f"Error: {line.split('ERROR:')[1].strip()}"
 
         return jsonify({"status": status, "message": message, "site": site, "amount": amount})
         

