@@ -3,5 +3,3 @@ python-dotenv
 requests
 pyTelegramBotAPI
 playwright
-playwright-stealth
-httpx

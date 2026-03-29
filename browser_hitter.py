@@ -2,7 +2,6 @@ import asyncio
 import random
 import sys
 import os
-import httpx
 import traceback
 from playwright.async_api import async_playwright
 from dotenv import load_dotenv
@@ -48,7 +47,8 @@ async def hit_card(url, card_str, proxy=None):
         
         print(f"🚀 Navigating to: {url}")
         try:
-            await page.goto(url, wait_until="networkidle", timeout=60000)
+            # Optimize: use 'domcontentloaded' instead of 'networkidle' for faster response on slow networks
+            await page.goto(url, wait_until="domcontentloaded", timeout=45000)
             
             # --- hCaptcha Check (REMOVED) ---
             pass
