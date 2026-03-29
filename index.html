@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Auto Hitter | Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal-overlay">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-icon">🔐</div>
+        <h2>Hitter Login</h2>
+        <p>Login with your Telegram Chat ID</p>
+      </div>
+      
+      <!-- Phase 1: Chat ID -->
+      <div id="auth-phase-1">
+        <div class="input-group">
+          <label>Telegram Chat ID</label>
+          <input type="text" id="chat-id-input" placeholder="8766583877" value="">
+        </div>
+        <button id="send-otp-btn" class="btn-primary">SEND CODE</button>
+      </div>
+
+      <!-- Phase 2: OTP -->
+      <div id="auth-phase-2" style="display: none;">
+        <div class="input-group">
+          <label>6-Digit Verification Code</label>
+          <input type="text" id="otp-input" placeholder="000000" maxlength="6">
+          <p class="hint">Code sent to your Telegram bot.</p>
+        </div>
+        <button id="verify-otp-btn" class="btn-primary">VERIFY & LOGIN</button>
+        <button id="back-to-phase-1" class="btn-text">Change Chat ID</button>
+      </div>
+
+      <div id="auth-error" class="login-error"></div>
+    </div>
+  </div>
+
+  <header id="main-header" style="display: none;">
+    <div style="width: 20px;">×</div>
+    <div class="header-title">HIT DASHBOARD</div>
+    <div id="logout-btn" style="color: var(--accent-red); cursor: pointer; font-size: 13px;">Logout</div>
+  </header>
+
+  <main class="main-content" id="dashboard-content" style="display: none;">
+    
+    <div class="tabs">
+      <div class="tab active" data-gate="checkout">checkout.stripe.com</div>
+      <div class="tab" data-gate="invoice">invoice.stripe.com</div>
+      <div class="tab" data-gate="billing">billing.stripe.com</div>
+    </div>
+
+    <!-- Browser Mode Toggle -->
+    <div class="toggle-bar">
+      <span>🌐 Use Local Browser Mode</span>
+      <label class="switch">
+        <input type="checkbox" id="browser-mode-toggle">
+        <span class="slider round"></span>
+      </label>
+    </div>
+
+    <div class="form-card">
+      <div class="input-group">
+        <label>Stripe URL</label>
+        <input type="text" id="stripe-url" placeholder="https://checkout.stripe.com/..." value="">
+      </div>
+
+      <div class="input-group" id="mode-cards-section">
+        <label>Card Details (One per line)</label>
+        <textarea id="cards-input" rows="5" placeholder="4242424242424242|12|26|123"></textarea>
+      </div>
+
+      <button id="start-btn" class="btn-primary">START HITTING</button>
+    </div>
+
+    <!-- Results Section -->
+    <div id="results-overview" style="display: none;">
+      <div class="results-header">
+        STATUS LOGS
+        <span id="copy-btn" style="color: var(--primary); cursor: pointer;">Copy Charged</span>
+      </div>
+      
+      <div class="stats-bar">
+        <div class="stat-chip stat-total" id="stat-total">0 total</div>
+        <div class="stat-chip stat-charged" id="stat-charged">0 Charged</div>
+        <div class="stat-chip stat-3ds" id="stat-3ds">0 3DS Bypassed</div>
+        <div class="stat-chip stat-declined" id="stat-declined">0 Declined</div>
+      </div>
+
+      <div id="log-output"></div>
+    </div>
+
+  </main>
+
+  <script src="main.js"></script>
+</body>
+</html>
