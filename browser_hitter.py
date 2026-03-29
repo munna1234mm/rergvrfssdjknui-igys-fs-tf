@@ -4,7 +4,7 @@ import sys
 import os
 import httpx
 from playwright.async_api import async_playwright
-from playwright_stealth import stealth_async
+from playwright_stealth import stealth
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -42,7 +42,7 @@ async def hit_card(url, card_str, proxy=None):
         context = await browser.new_context(**context_args)
         
         page = await context.new_page()
-        await stealth_async(page)
+        await stealth(page)
         
         print(f"🚀 Navigating to: {url}")
         try:
