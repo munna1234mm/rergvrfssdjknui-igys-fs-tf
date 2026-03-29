@@ -3,6 +3,7 @@ import random
 import sys
 import os
 import httpx
+import traceback
 from playwright.async_api import async_playwright
 from playwright_stealth import stealth
 from dotenv import load_dotenv
@@ -183,8 +184,12 @@ async def hit_card(url, card_str, proxy=None):
 
         except Exception as e:
             print(f"ERROR: {str(e)}")
-        finally:
-            await browser.close()
+            print(traceback.format_exc())
+            # Ensure browser is closed
+            try:
+                await browser.close()
+            except:
+                pass
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
