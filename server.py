@@ -2,12 +2,14 @@ from flask import Flask, send_from_directory, request, jsonify, session
 import os
 import random
 import requests
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = "HITTER_SECRET_KEY_987654321" # Fixed key for session persistence
+app.permanent_session_lifetime = timedelta(days=7) # Session lasts 7 days
 
 # Global variables
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -35,6 +37,12 @@ def static_files(path):
 
 # --- AUTH API ---
 
+@app.route("/api/check-session", methods=["GET"])
+def check_session():
+    if "chat_id" in session:
+        return jsonify({"success": True, "chat_id": session["chat_id"]})
+    return jsonify({"success": False, "message": "No active session"}), 401
+
 @app.route("/api/send-otp", methods=["POST"])
 def send_otp():
     data = request.json
@@ -57,10 +65,16 @@ def verify_otp():
     code = str(data.get("code"))
     
     if otp_storage.get(chat_id) == code:
+        session.permanent = True # Make cookie last long
         session["chat_id"] = chat_id
         return jsonify({"success": True, "message": "Login successful"})
     else:
         return jsonify({"success": False, "message": "Invalid code"}), 401
+
+@app.route("/api/logout", methods=["POST"])
+def logout():
+    session.pop("chat_id", None)
+    return jsonify({"success": True, "message": "Logged out"})
 
 # --- HITTER API ---
 
@@ -77,7 +91,6 @@ def hit():
     if not url or not card:
         return jsonify({"success": False, "message": "URL and Card are required"}), 400
 
-    # API Hitting Only (Removed Browser Mode Logic)
     try:
         headers = {"X-API-Key": API_KEY, "Content-Type": "application/json"}
         payload = {"url": url, "card": card}

@@ -20,6 +20,21 @@ let activeMode = 'cards'; // 'cards' or 'bin'
 let stats = { total: 0, charged: 0, bypassed: 0, declined: 0 };
 let currentChatId = '';
 
+// --- INITIALIZATION (Check Session on Load) ---
+
+window.onload = async () => {
+    try {
+        const res = await fetch('/api/check-session');
+        const data = await res.json();
+        if (data.success) {
+            currentChatId = data.chat_id;
+            showDashboard();
+        }
+    } catch (e) {
+        // No session found, stay on login modal
+    }
+};
+
 // --- AUTH FLOW ---
 
 document.getElementById('send-otp-btn').onclick = async () => {
@@ -101,6 +116,14 @@ document.getElementById('mode-bin-tab').onclick = () => {
     document.getElementById('input-cards-area').style.display = 'none';
     document.getElementById('input-bin-area').style.display = 'block';
     startBtn.innerText = "✨ Charge with BIN";
+};
+
+// Logout Logic
+document.querySelector('.profile-avatar').onclick = async () => {
+  if (confirm("Do you want to logout?")) {
+    await fetch('/api/logout', { method: 'POST' });
+    location.reload();
+  }
 };
 
 // --- HITTER LOGIC ---
