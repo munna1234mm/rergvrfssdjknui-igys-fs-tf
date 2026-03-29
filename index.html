@@ -8,11 +8,40 @@
 </head>
 <body>
 
-  <!-- Success Notification Overlay -->
+  <!-- Success Notification -->
   <div id="success-overlay" class="notification-overlay">
     <div class="notification-content">
       <span class="notif-icon">✅</span>
       <span id="notif-message">Payment successful! Card charged. Stopping.</span>
+    </div>
+  </div>
+
+  <!-- Requirements Overlay (Join Channels) -->
+  <div id="requirements-overlay" class="modal-overlay" style="display: none; z-index: 2100;">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-icon">📢</div>
+        <h2>Join Channels</h2>
+        <p>Please join our channels to unlock the dashboard.</p>
+      </div>
+      <div id="needed-list" class="needed-list"></div>
+      <button id="verify-req-btn" class="btn-primary" style="margin-top: 20px;">VERIFY JOINED</button>
+    </div>
+  </div>
+
+  <!-- Settings Modal (Proxy) -->
+  <div id="settings-modal" class="modal-overlay" style="display: none; z-index: 2000;">
+    <div class="login-card">
+      <div class="login-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>Settings</h2>
+        <span class="close-modal" id="close-settings">✕</span>
+      </div>
+      <div class="input-group">
+        <label>Personal Proxy</label>
+        <input type="text" id="user-proxy-input" placeholder="http://user:pass@ip:port">
+        <p class="hint">Leave blank to use system default.</p>
+      </div>
+      <button id="save-settings-btn" class="btn-primary">SAVE SETTINGS</button>
     </div>
   </div>
 
@@ -24,7 +53,6 @@
         <h2>Hitter Login</h2>
         <p>Login with your Telegram Chat ID</p>
       </div>
-      
       <div id="auth-phase-1">
         <div class="input-group">
           <label>Telegram Chat ID</label>
@@ -32,7 +60,6 @@
         </div>
         <button id="send-otp-btn" class="btn-primary">SEND CODE</button>
       </div>
-
       <div id="auth-phase-2" style="display: none;">
         <div class="input-group">
           <label>6-Digit Verification Code</label>
@@ -45,24 +72,22 @@
     </div>
   </div>
 
-  <!-- Main App -->
+  <!-- Main App Header -->
   <header id="main-header" style="display: none;">
     <div class="header-left">
-      <span class="close-icon">✕</span>
       <span class="header-title">HIT</span>
+      <span id="admin-link" style="display: none; font-size: 10px; margin-left:10px; color: var(--primary); cursor: pointer;">[ADMIN]</span>
     </div>
     <div class="header-right">
        <span id="user-profile" class="profile-info">
          <span id="user-name">User</span>
-         <div class="profile-avatar">👤</div>
+         <div class="profile-avatar" id="settings-btn">⚙️</div>
        </span>
-       <span class="menu-icon">⋮</span>
+       <span class="logout-icon" id="logout-btn" style="margin-left: 10px; cursor: pointer;">🚪</span>
     </div>
   </header>
 
   <main class="main-content" id="dashboard-content" style="display: none;">
-    
-    <!-- Gate Selection Cards -->
     <div class="gate-grid">
       <div class="gate-card active" data-gate="checkout">
         <div class="gate-icon">🛒</div>
@@ -80,13 +105,11 @@
         <input type="text" id="stripe-url" placeholder="https://checkout.stripe.com/c/pay/cs_live_..." value="">
       </div>
 
-      <!-- Mode Switcher -->
       <div class="mode-tabs">
         <div class="mode-tab active" id="mode-cards-tab">📂 Cards</div>
         <div class="mode-tab" id="mode-bin-tab">✨ Charge with BIN</div>
       </div>
 
-      <!-- Input Areas based on mode -->
       <div id="input-cards-area">
         <textarea id="cards-input" rows="5" placeholder="4242424242424242|MM|YY|CVC"></textarea>
       </div>
@@ -95,11 +118,10 @@
         <div class="bin-row">
           <input type="text" id="bin-input" placeholder="374355" maxlength="6">
           <input type="number" id="bin-amount" placeholder="10" value="10">
-          <button id="gen-btn" class="icon-btn">💾</button>
         </div>
       </div>
 
-      <button id="start-btn" class="btn-action">🚀 Charge with BIN</button>
+      <button id="start-btn" class="btn-action">🚀 Start Hitting</button>
     </div>
 
     <!-- Results Section -->
@@ -109,18 +131,12 @@
         <div class="stats-row">
           <span class="stat-badge total" id="stat-total">0 total</span>
           <span class="stat-badge charged" id="stat-charged">0 Charged</span>
-          <span class="stat-badge 3ds" id="stat-3ds">0 3DS Bypassed</span>
+          <span class="stat-badge bypassed" id="stat-bypassed">0 3DS Bypassed</span>
           <span class="stat-badge dead" id="stat-declined">0 Declined</span>
         </div>
       </div>
-      
-      <div class="log-controls">
-         <div id="copy-btn">📋 Copy Charged</div>
-      </div>
-
       <div id="log-output" class="result-list"></div>
     </div>
-
   </main>
 
   <script src="main.js"></script>

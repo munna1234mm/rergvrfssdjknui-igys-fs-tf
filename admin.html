@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel | HIT</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .admin-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .stat-box { text-align: center; border-right: 1px solid var(--border); }
+    .stat-box:last-child { border-right: none; }
+    .stat-val { font-size: 24px; font-weight: 700; color: var(--primary); }
+    .stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; }
+    .req-item-admin { display: flex; justify-content: space-between; align-items: center; background: var(--bg); padding: 10px; border-radius: 8px; margin-top: 10px; }
+    .btn-delete { color: var(--accent-red); background: none; border: none; cursor: pointer; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <span class="header-title">ADMIN PANEL</span>
+    </div>
+    <div class="header-right">
+      <button onclick="window.location.href='/'" class="btn-primary" style="padding: 5px 15px; font-size: 12px;">BACK TO DASHBOARD</button>
+    </div>
+  </header>
+
+  <main class="main-content">
+    
+    <!-- Stats Section -->
+    <div class="admin-card">
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+        <div class="stat-box">
+          <div class="stat-val" id="total-users">0</div>
+          <div class="stat-label">Total Users</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="total-hits">0</div>
+          <div class="stat-label">Total Hits</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="success-hits">0</div>
+          <div class="stat-label">Success Hits</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Requirements Management -->
+    <div class="admin-card">
+      <h3 style="margin-bottom: 15px; font-size: 15px;">Required Channels/Groups</h3>
+      <div id="admin-req-list"></div>
+      
+      <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+        <div class="input-group">
+          <label>Chat ID</label>
+          <input type="text" id="new-req-id" placeholder="-100xxxxxxx">
+        </div>
+        <div class="input-group">
+          <label>Join URL</label>
+          <input type="text" id="new-req-url" placeholder="https://t.me/...">
+        </div>
+        <div class="input-group">
+          <label>Channel Name</label>
+          <input type="text" id="new-req-name" placeholder="Official Channel">
+        </div>
+        <button id="add-req-btn" class="btn-primary">ADD REQUIREMENT</button>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="admin.js"></script>
+</body>
+</html>
